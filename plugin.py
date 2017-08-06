@@ -3,7 +3,7 @@
 # Author: Chris Gheen @GameDevHobby
 #
 """
-<plugin key="Carwings" name="Carwings (Nissan Leaf)" author="Chris Gheen @GameDevHobby" version="1.0.0" wikilink="" externallink="https://www.nissanusa.com/connect">
+<plugin key="Carwings" name="Carwings (Nissan Leaf)" author="Chris Gheen @GameDevHobby" version="0.5.0" wikilink="" externallink="https://www.nissanusa.com/connect">
     <params>
         <param field="Username" label="Username" width="200px" required="true" default="user"/>
         <param field="Password" label="Password" width="200px" required="true" default="password"/>

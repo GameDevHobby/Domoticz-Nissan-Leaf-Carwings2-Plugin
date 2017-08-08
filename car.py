@@ -17,6 +17,7 @@ class Carwings:
         self.session = pycarwings2.Session(username, password, region)
         self.leaf = self.session.get_leaf()
         self.latestStatus = self.leaf.get_latest_battery_status()
+        self.result_key = self.leaf.request_update()
 
     def battery_percent(self):
         st = self.latestStatus

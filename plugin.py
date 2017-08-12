@@ -33,6 +33,7 @@ class BasePlugin:
     enabled = False
     def __init__(self):
         self.debug = False
+        self.last_result = None
         return
 
     def run(self, result=None):
@@ -116,8 +117,8 @@ class BasePlugin:
         out = None
         if self.last_result is not None:
             out = self.run(self.last_result)
-            Domoticz.Debug(out)
-            if out is None or out == "None":
+            Domoticz.Debug("Result: {0}".format(out))
+            if out is None or "None" in out:
                 return
 
             info = out.split("|")
@@ -131,6 +132,7 @@ class BasePlugin:
             self.last_result = None
         else:
             self.last_result = self.run()
+            Domoticz.Debug("Updating...")
         
 
 

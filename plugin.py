@@ -46,7 +46,7 @@ class BasePlugin:
         else:
             cmd = cmd + " -c update"
 
-        #Domoticz.Debug(cmd)
+        Domoticz.Debug(cmd.replace(password, "***************"))
 
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
@@ -54,9 +54,9 @@ class BasePlugin:
         out = out.decode("utf-8")
         err = err.decode("utf-8")
         
-        #Domoticz.Debug(str(p.returncode))
-        #Domoticz.Debug(out)
-        #Domoticz.Debug(err)
+        #Domoticz.Debug("ReturnCode: " + str(p.returncode))
+        #Domoticz.Debug("out: " + out)
+        #Domoticz.Debug("err: " + err)
         #self.debug = False
 
         if p.returncode == 1:
@@ -84,7 +84,7 @@ class BasePlugin:
         if updateInterval < 600:
             if updateInterval < 30: 
                 updateInterval == 30
-            Domoticz.Log("Update interval set to " + str(updateInterval) + " (minimum is 10 seconds)")
+            Domoticz.Log("Update interval set to " + str(updateInterval) + " (minimum is 30 seconds)")
             Domoticz.Heartbeat(updateInterval)
         else:
             Domoticz.Heartbeat(600)
@@ -116,23 +116,31 @@ class BasePlugin:
     def onHeartbeat(self):
         out = None
         if self.last_result is not None:
-            out = self.run(self.last_result)
-            Domoticz.Debug("Result: {0}".format(out))
-            if out is None or "None" in out:
-                return
+            Domoticz.Debug("Checking on update.")
+            try:
+                out = self.run(self.last_result)
+                Domoticz.Debug("Result: {0}".format(out))
+                if out is None or "None" in out:
+                    #self.last_result = None
+                    return
 
-            info = out.split("|")
-            percent = float(info[0])
-            plugged = info[1]#"Plugged In" if info[1] == "CONNECTED" else "Not Plugged In"
-            charging = info[2]#"Charging" if info[2] == "NORMAL_CHARGING" else "Not Charging"
+                info = out.split("|")
+                percent = float(info[0])
+                plugged = info[1].rtrim()#"Plugged In" if info[1] == "CONNECTED" else "Not Plugged In"
+                charging = info[2].rtrim()#"Charging" if info[2] == "NORMAL_CHARGING" else "Not Charging"
 
-            UpdateDevice(1, 1, percent)        
-            UpdateDevice(2, 1, plugged)        
-            UpdateDevice(3, 1, charging)        
+                UpdateDevice(1, 1, percent, True)        
+                UpdateDevice(2, 1, plugged)        
+                UpdateDevice(3, 1, charging)        
+            except:
+                Domoticz.Debug("Couldn't communicate with car")        
+                UpdateDevice(2, 1, "No Communication") 
+
             self.last_result = None
         else:
-            self.last_result = self.run()
             Domoticz.Debug("Updating...")
+            self.last_result = self.run()
+            Domoticz.Debug("Result: " + self.last_result)
         
 
 

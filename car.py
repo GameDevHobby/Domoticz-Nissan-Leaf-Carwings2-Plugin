@@ -28,10 +28,13 @@ class Carwings:
         return self.leaf.request_update()
 
     def _get_update(self, result):
-        status = self.leaf.get_status_from_update(result)
-        if status == None:
-            return None
-        return "{0}|{1}|{2}".format(status.battery_percent, status.plugin_state, status.charging_status)
+        try:
+            status = self.leaf.get_status_from_update(result)
+            if status == None:
+                return None
+            return "{0}|{1}|{2}".format(status.battery_percent, status.plugin_state, status.charging_status)
+        except pycarwings2.CarwingsError:
+            return "Could not establish communications with vehicle."
 
     def get_update(self):
         return _get_update(self.result_key)

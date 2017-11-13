@@ -34,6 +34,7 @@ class BasePlugin:
     def __init__(self):
         self.debug = False
         self.last_result = None
+        self.updateInterval = 600
         return
 
     def run(self, result=None):
@@ -79,15 +80,16 @@ class BasePlugin:
 
             Domoticz.Log("Devices created")
 
-        updateInterval = int(Parameters["Mode5"])
+        self.updateInterval = 30#int(Parameters["Mode5"])
         
-        if updateInterval < 600:
-            if updateInterval < 30: 
-                updateInterval == 30
-            Domoticz.Log("Update interval set to " + str(updateInterval) + " (minimum is 30 seconds)")
-            Domoticz.Heartbeat(updateInterval)
+        if self.updateInterval < 600:
+            if self.updateInterval < 30: 
+                self.updateInterval == 30
+            Domoticz.Log("Update interval set to " + str(self.updateInterval) + " (minimum is 30 seconds)")
+            Domoticz.Heartbeat(self.updateInterval)
         else:
-            Domoticz.Heartbeat(600)
+            self.updateInterval = 600
+            Domoticz.Heartbeat(self.updateInterval)
         
         if self.debug == True:
             DumpConfigToLog()
@@ -137,10 +139,12 @@ class BasePlugin:
                 UpdateDevice(2, 1, "No Communication") 
 
             self.last_result = None
+            #Domoticz.Heartbeat(self.updateInterval)
         else:
             Domoticz.Debug("Updating...")
             self.last_result = self.run()
             Domoticz.Debug("Result: " + self.last_result)
+            #Domoticz.Heartbeat(10)
         
 
 
@@ -193,7 +197,7 @@ def UpdateDevice(Unit, nValue, sValue, AlwaysUpdate=False):
     # Generic helper functions
 def DumpConfigToLog():
     for x in Parameters:
-        if Parameters[x] != "":
+        if Parameters[x] != "" and x.lower != "password":
             Domoticz.Debug( "'" + x + "':'" + str(Parameters[x]) + "'")
     Domoticz.Debug("Device count: " + str(len(Devices)))
     for x in Devices:

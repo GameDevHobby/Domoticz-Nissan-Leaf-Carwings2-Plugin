@@ -16,7 +16,8 @@
                 <option label="Japan" value="NML"/>
             </options>
         </param>
-        <param field="Mode5" label="Update interval (sec)" width="30px" required="true" default="30"/>
+        <param field="Mode4" label="API interval (should be infrequent, in sec)" width="30px" required="true" default="900"/>
+        <param field="Mode5" label="Plugin Update interval (sec)" width="30px" required="true" default="30"/>
         <param field="Mode6" label="Debug" width="75px">
             <options>
                 <option label="True" value="Debug"/>
@@ -28,6 +29,7 @@
 """
 import Domoticz
 import subprocess
+import datetime
 
 class BasePlugin:
     enabled = False
@@ -35,6 +37,9 @@ class BasePlugin:
         self.debug = False
         self.last_result = None
         self.updateInterval = 600
+        self.apiInterval = 900
+        self.lastApiUpdateTime = datetime.datetime.min # force recheck on start
+
         return
 
     def run(self, result=None):
@@ -80,8 +85,10 @@ class BasePlugin:
 
             Domoticz.Log("Devices created")
 
-        self.updateInterval = 30#int(Parameters["Mode5"])
-        
+        self.updateInterval = int(Parameters["Mode5"])
+        self.apiInterval = int(Parameters["Mode4"])
+        self.lastApiUpdateTime = datetime.datetime.min # force recheck on start
+
         if self.updateInterval < 600:
             if self.updateInterval < 30: 
                 self.updateInterval == 30
@@ -119,33 +126,39 @@ class BasePlugin:
         out = None
         if self.last_result is not None:
             Domoticz.Debug("Checking on update.")
+            out = ""
             try:
+                self.lastApiUpdateTime = datetime.datetime.now()
                 out = self.run(self.last_result)
-                Domoticz.Debug("Result: {0}".format(out))
-                if out is None or "None" in out:
-                    #self.last_result = None
-                    return
-
-                info = out.split("|")
-                percent = float(info[0])
-                plugged = info[1].rtrim()#"Plugged In" if info[1] == "CONNECTED" else "Not Plugged In"
-                charging = info[2].rtrim()#"Charging" if info[2] == "NORMAL_CHARGING" else "Not Charging"
-
-                UpdateDevice(1, 1, percent, True)        
-                UpdateDevice(2, 1, plugged)        
-                UpdateDevice(3, 1, charging)        
+                Domoticz.Debug("Result: " + out)
             except:
-                Domoticz.Debug("Couldn't communicate with car")        
-                UpdateDevice(2, 1, "No Communication") 
+                Domoticz.Debug("Couldn't communicate with car: ")
+                out = "-99|NO COMMUNICATION|UNKNOWN"
+
+            if out is None or "None" in out:
+                #self.last_result = None
+                return
+
+            info = out.split("|")
+            percent = float(info[0])
+            plugged = info[1].rstrip()#"Plugged In" if info[1] == "CONNECTED" else "Not Plugged In"
+            charging = info[2].rstrip()#"Charging" if info[2] == "NORMAL_CHARGING" else "Not Charging"
+
+            UpdateDevice(1, 1, percent, True)        
+            UpdateDevice(2, 1, plugged)        
+            UpdateDevice(3, 1, charging)        
 
             self.last_result = None
             #Domoticz.Heartbeat(self.updateInterval)
         else:
-            Domoticz.Debug("Updating...")
-            self.last_result = self.run()
-            Domoticz.Debug("Result: " + self.last_result)
-            #Domoticz.Heartbeat(10)
-        
+            timedelta = datetime.timedelta(seconds = self.apiInterval)
+            if self.lastApiUpdateTime + timedelta < datetime.datetime.now():
+                Domoticz.Debug("Updating...")
+                self.last_result = self.run()
+                Domoticz.Debug("Result: " + self.last_result)
+                #Domoticz.Heartbeat(10)
+            else:
+                Domoticz.Debug("Not updating yet... Will update at: " + str(self.lastApiUpdateTime + timedelta)) 
 
 
 global _plugin
@@ -197,7 +210,7 @@ def UpdateDevice(Unit, nValue, sValue, AlwaysUpdate=False):
     # Generic helper functions
 def DumpConfigToLog():
     for x in Parameters:
-        if Parameters[x] != "" and x.lower != "password":
+        if Parameters[x] != "" and x.lower() != "password":
             Domoticz.Debug( "'" + x + "':'" + str(Parameters[x]) + "'")
     Domoticz.Debug("Device count: " + str(len(Devices)))
     for x in Devices:
